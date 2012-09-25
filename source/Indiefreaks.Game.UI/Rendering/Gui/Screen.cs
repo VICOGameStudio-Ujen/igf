@@ -4,7 +4,6 @@ using Indiefreaks.Xna.Core;
 using Indiefreaks.Xna.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 
 namespace Indiefreaks.Xna.Rendering.Gui
 {
@@ -27,7 +26,9 @@ namespace Indiefreaks.Xna.Rendering.Gui
         private bool _isDirty = true;
         private float _movementSleep;
         private RenderTarget2D _renderTarget2D;
-
+        private int oldHeight;
+        private int oldWidth;
+        
         /// <summary>
         /// Creates a new instance
         /// </summary>
@@ -323,14 +324,39 @@ namespace Indiefreaks.Xna.Rendering.Gui
         public void PrepareRenderTarget(GraphicsDevice device)
         {
 #if WINDOWS_PHONE
-            const bool useMipMap = false;
+            const bool USE_MIP_MAP = false;
 #else
-            const bool useMipMap = true;
+            const bool USE_MIP_MAP = true;
 #endif
             if (Width == 0 || Height == 0)
-                _renderTarget2D = new RenderTarget2D(device, 100, 100, useMipMap, SurfaceFormat.Color, DepthFormat.None, Application.Graphics.GraphicsDevice.PresentationParameters.MultiSampleCount, RenderTargetUsage.PreserveContents);
+                _renderTarget2D = new RenderTarget2D(device, 100, 100, USE_MIP_MAP, SurfaceFormat.Color, DepthFormat.None, Application.Graphics.GraphicsDevice.PresentationParameters.MultiSampleCount, RenderTargetUsage.PreserveContents);
             else
-                _renderTarget2D = new RenderTarget2D(device, Width, Height, useMipMap, SurfaceFormat.Color, DepthFormat.None, Application.Graphics.GraphicsDevice.PresentationParameters.MultiSampleCount, RenderTargetUsage.PreserveContents);
+                _renderTarget2D = new RenderTarget2D(device, Width, Height, USE_MIP_MAP, SurfaceFormat.Color, DepthFormat.None, Application.Graphics.GraphicsDevice.PresentationParameters.MultiSampleCount, RenderTargetUsage.PreserveContents);
+
+            // Check if the size changed, if not simply clear the old RenderTarget. Saves lots of memory when using dynamic content in screens.
+            if (oldWidth != Width || oldHeight != Height)
+            {
+                if (Width == 0 || Height == 0)
+                    _renderTarget2D = new RenderTarget2D(device, 100, 100, true, SurfaceFormat.Color,
+                                                      DepthFormat.None,
+                                                      Application.Graphics.GraphicsDevice.PresentationParameters.
+                                                          MultiSampleCount, RenderTargetUsage.PreserveContents);
+                else
+                    _renderTarget2D = new RenderTarget2D(device, Width, Height, true, SurfaceFormat.Color,
+                                                      DepthFormat.None,
+                                                      Application.Graphics.GraphicsDevice.PresentationParameters.
+                                                          MultiSampleCount, RenderTargetUsage.PreserveContents);
+                oldWidth = _renderTarget2D.Width;
+                oldHeight = _renderTarget2D.Height;
+            }
+            else
+            {
+                device.SetRenderTarget(_renderTarget2D);
+
+                device.Clear(Color.Transparent);
+
+                device.SetRenderTarget(null);
+            }
         }
 
         /// <summary>
